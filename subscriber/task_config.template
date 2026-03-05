@@ -1,0 +1,59 @@
+# ============================================================
+# tasker-talker  ·  task_config.yaml
+# ============================================================
+# Configuration for the ZMQ subscriber.
+#
+# Run the subscriber with:
+#   python subscriber/subscriber.py --config subscriber/task_config.yaml
+#
+# Each machine in your cluster can have its own copy of this file
+# with different scripts assigned to the same task IDs.
+# ============================================================
+
+subscriber:
+  # ZMQ publisher address to connect to.
+  address: "tcp://localhost:5555"
+
+  # Must match the topic set in the publisher's message_config.yaml.
+  topic: "tasks"
+
+# ── Task definitions ──────────────────────────────────────────
+# Map each task ID (integer) to a local script.
+#
+# Fields per task:
+#   name   – human-readable label (used in log output)
+#   script – command or path to script to execute
+#            Supports shell-style quoting, e.g. "python my_script.py"
+#   args   – list of additional CLI arguments (optional)
+#   env    – extra environment variables to inject (optional)
+#
+# Tip: task IDs do not have to be contiguous.  Any task ID that
+# appears in a received message but has no entry here is skipped
+# with a warning — useful when different machines handle different tasks.
+# ============================================================
+
+tasks:
+  # 1:
+  #   name: "Hello World"
+  #   script: "./scripts/task1.sh"
+  #   args: []
+  #   env: {}
+
+  # 2:
+  #   name: "Print timestamp"
+  #   script: "./scripts/task2.sh"
+  #   args: []
+  #   env:
+  #     MY_ENV_VAR: "hello_from_task2"
+
+  # 3:
+  #   name: "Python task"
+  #   script: "python3 ./scripts/task3.py"
+  #   args: ["--verbose"]
+  #   env: {}
+
+  # 4:
+  #   name: "Echo task ID"
+  #   script: "./scripts/task4.sh"
+  #   args: ["--task-id", "4"]
+  #   env: {}

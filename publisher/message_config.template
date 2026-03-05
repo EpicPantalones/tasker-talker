@@ -1,0 +1,47 @@
+# ============================================================
+# tasker-talker  ·  message_config.yaml
+# ============================================================
+# Configuration for the ZMQ publisher.
+#
+# Run the publisher with:
+#   python publisher/publisher.py --config publisher/message_config.yaml
+# ============================================================
+
+publisher:
+  # ZMQ bind address.  Use tcp://*:<port> to listen on all interfaces.
+  address: "tcp://*:5555"
+
+  # Topic prefix prepended to every published message.
+  # Subscribers must subscribe to this exact topic to receive messages.
+  topic: "tasks"
+
+schedule:
+  # ── Start time ──────────────────────────────────────────────
+  # Option A – fixed absolute time (ISO 8601, UTC assumed if no tz given):
+  #   start_time: "2026-03-06 09:00:00"
+  #
+  # Option B – relative to NOW (leave start_time null or remove it):
+  #   start_delay_seconds controls how far in the future the first task fires.
+  start_time: null
+  start_delay_seconds: 10    # first task fires 10 s after the message is sent
+
+  # ── Task spacing ────────────────────────────────────────────
+  # Seconds between consecutive task execution times.
+  interval_seconds: 30
+
+  # ── Task list ───────────────────────────────────────────────
+  # Option A – explicit task IDs (useful when IDs are non-sequential):
+  tasks:
+    # - id: 1
+    # - id: 2
+    # - id: 3
+    # - id: 4
+
+  # Option B – auto-generate IDs 1…num_tasks (used only when 'tasks' is absent):
+  # num_tasks: 4
+
+  # ── Repeat ──────────────────────────────────────────────────
+  # Set repeat: true to keep re-publishing on a fixed cadence.
+  # Each republish recalculates execution times from "now + start_delay_seconds".
+  repeat: false
+  repeat_seconds: 300
