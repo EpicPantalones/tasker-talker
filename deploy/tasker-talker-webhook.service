@@ -1,0 +1,44 @@
+# =============================================================================
+# deploy/tasker-talker-webhook.service
+#
+# systemd unit file for the tasker-talker webhook server.
+# Keeps the webhook server running and restarts it on failure.
+#
+# Installation (run as root or with sudo):
+#   1. sudo cp deploy/tasker-talker-webhook.service /etc/systemd/system/
+#   2. Edit the placeholders below.
+#   3. sudo systemctl daemon-reload
+#      sudo systemctl enable --now tasker-talker-webhook
+# =============================================================================
+
+[Unit]
+Description=tasker-talker GitHub webhook server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# --- Replace these placeholders ---------------------------------------------
+User=<your-username>
+WorkingDirectory=/home/<your-username>/tasker-talker
+
+ExecStart=/home/<your-username>/tasker-talker/.venv/bin/python \
+    deploy/webhook_server.py \
+    --port 9000 \
+    --branch main \
+    --service tasker-talker-subscriber
+# ----------------------------------------------------------------------------
+
+# Store the webhook secret outside the repo (chmod 600)
+# e.g. echo 'WEBHOOK_SECRET=mysecret' > /etc/tasker-talker.env
+EnvironmentFile=-/etc/tasker-talker.env
+
+Restart=on-failure
+RestartSec=5
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

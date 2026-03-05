@@ -29,6 +29,12 @@ tasker-talker/
 │   ├── task3.py
 │   └── task4.sh
 │
+├── deploy/                 # Auto-update & deployment helpers
+│   ├── auto_update.sh                    # git pull + optional service restart
+│   ├── webhook_server.py                 # GitHub webhook listener (stdlib only)
+│   ├── tasker-talker-subscriber.service  # systemd unit for the subscriber
+│   └── tasker-talker-webhook.service     # systemd unit for the webhook server
+│
 ├── requirements.txt
 ├── .gitignore
 └── README.md
@@ -165,6 +171,100 @@ Messages are sent as ZMQ multipart frames: `[topic, json_payload]`.
     { "task_id": 3, "execute_at": "2026-03-05T10:01:10+00:00" }
   ]
 }
+```
+
+---
+
+## Auto-update on push
+
+Neither Git nor ZMQ polls GitHub automatically — you need to add that yourself.
+Two approaches are included; pick one (or use both on different machines).
+
+### Option A — Cron polling (simplest)
+
+Adds a cron job that runs `deploy/auto_update.sh` on a schedule.  The script
+does a fast `git fetch` and only pulls + restarts when new commits exist.
+
+```bash
+# Make the script executable
+chmod +x deploy/auto_update.sh
+
+# Open your crontab
+crontab -e
+```
+
+Add a line like this (polls every 5 minutes):
+
+```cron
+*/5 * * * * /home/<you>/tasker-talker/deploy/auto_update.sh >> /var/log/tasker-talker-update.log 2>&1
+```
+
+The script accepts optional flags:
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--repo-dir <path>` | parent of the script | Path to the cloned repo |
+| `--service <name>` | `tasker-talker-subscriber` | systemd service to restart |
+| `--no-restart` | — | Skip the service restart |
+
+---
+
+### Option B — GitHub webhook (instant)
+
+GitHub POSTs a JSON payload to your machine whenever you push.  A small
+stdlib-only Python server (`deploy/webhook_server.py`) receives it, verifies
+the HMAC signature, and calls `auto_update.sh`.
+
+#### 1 – Run the webhook server
+
+```bash
+export WEBHOOK_SECRET=your_secret_here
+python deploy/webhook_server.py --port 9000 --branch main
+```
+
+Or run it as a systemd service (recommended — edit the placeholders first):
+
+```bash
+sudo cp deploy/tasker-talker-webhook.service /etc/systemd/system/
+# edit /etc/systemd/system/tasker-talker-webhook.service — replace <your-username>
+echo 'WEBHOOK_SECRET=your_secret_here' | sudo tee /etc/tasker-talker.env
+sudo chmod 600 /etc/tasker-talker.env
+sudo systemctl daemon-reload
+sudo systemctl enable --now tasker-talker-webhook
+```
+
+#### 2 – Configure the webhook on GitHub
+
+1. Go to your repository → **Settings → Webhooks → Add webhook**.
+2. Set **Payload URL** to `http://<your-machine-ip>:9000/webhook`.
+3. Set **Content type** to `application/json`.
+4. Set **Secret** to the same value as `WEBHOOK_SECRET`.
+5. Choose **Just the push event** and save.
+
+> **Firewall** — port 9000 (or whichever you choose) must be reachable from
+> GitHub's IP ranges.  If your machine is behind NAT, use a reverse proxy
+> (nginx, Caddy) or a tunnel (ngrok, Cloudflare Tunnel).
+
+---
+
+### Running the subscriber as a systemd service
+
+Both auto-update methods optionally restart the subscriber service.  Install
+it so systemd manages it:
+
+```bash
+sudo cp deploy/tasker-talker-subscriber.service /etc/systemd/system/
+# edit the file — replace <your-username> and adjust the Python path
+sudo systemctl daemon-reload
+sudo systemctl enable --now tasker-talker-subscriber
+```
+
+Useful commands:
+
+```bash
+sudo systemctl status tasker-talker-subscriber
+journalctl -u tasker-talker-subscriber -f   # live logs
+sudo systemctl restart tasker-talker-subscriber
 ```
 
 ---

@@ -1,0 +1,49 @@
+# =============================================================================
+# deploy/tasker-talker-subscriber.service
+#
+# systemd unit file for the tasker-talker subscriber.
+#
+# Installation (run as root or with sudo):
+#   1. Copy this file to /etc/systemd/system/ (or symlink it):
+#        sudo cp deploy/tasker-talker-subscriber.service /etc/systemd/system/
+#
+#   2. Edit the placeholders below (search for <...>).
+#
+#   3. Reload and enable:
+#        sudo systemctl daemon-reload
+#        sudo systemctl enable --now tasker-talker-subscriber
+#
+#   4. Check status:
+#        sudo systemctl status tasker-talker-subscriber
+#        journalctl -u tasker-talker-subscriber -f
+# =============================================================================
+
+[Unit]
+Description=tasker-talker subscriber
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# --- Replace these placeholders ---------------------------------------------
+User=<your-username>
+WorkingDirectory=/home/<your-username>/tasker-talker
+
+# Adjust the python path to your virtualenv or system Python.
+ExecStart=/home/<your-username>/tasker-talker/.venv/bin/python \
+    subscriber/subscriber.py \
+    --config subscriber/task_config.yaml
+# ----------------------------------------------------------------------------
+
+Restart=on-failure
+RestartSec=5
+
+# Clean environment — explicit PATH so scripts can find system tools.
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
