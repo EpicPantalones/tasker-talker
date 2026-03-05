@@ -28,3 +28,10 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Scripts
+scripts/*
+
+# Instances
+publisher/message_config.yaml
+subscriber/task_config.yaml
